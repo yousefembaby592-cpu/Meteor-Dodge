@@ -1,0 +1,6 @@
+{
+  "name": "Meteor Dodge",
+  "description": "A thrilling 2D neon space arcade game where players pilot a spaceship to dodge descending meteors with increasing speed and high scores.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
