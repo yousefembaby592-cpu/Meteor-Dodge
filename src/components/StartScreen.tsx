@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Rocket, Trophy, Sparkles, HelpCircle, Flame, Shield, ArrowRightLeft, Zap, Award } from 'lucide-react';
+import { Rocket, Trophy, Sparkles, HelpCircle, Flame, Shield, ArrowRightLeft, Zap, Award, Download, FileCode } from 'lucide-react';
 import { GameStats, Language } from '../types';
 import { getTranslation } from '../utils/translations';
 import { soundManager } from '../utils/audio';
@@ -18,6 +18,16 @@ export const StartScreen: React.FC<StartScreenProps> = ({
   const t = getTranslation(lang);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
   const [difficulty, setDifficulty] = useState<'normal' | 'hyper'>('normal');
+
+  const handleDownloadStandalone = () => {
+    soundManager.playClick();
+    const link = document.createElement('a');
+    link.href = '/meteor-dodge.html';
+    link.download = 'meteor-dodge.html';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="absolute inset-0 z-30 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -123,6 +133,16 @@ export const StartScreen: React.FC<StartScreenProps> = ({
         >
           <Rocket className="w-5 h-5" />
           <span>{t.startMission}</span>
+        </button>
+
+        {/* Download Standalone Single-File HTML Button */}
+        <button
+          onClick={handleDownloadStandalone}
+          className="w-full py-2 px-3 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 hover:border-cyan-500/50 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer mb-2"
+          title="تحميل اللعبة كملف HTML واحد مستقل يعمل أوفلاين بدون إنترنت أو تثبيت"
+        >
+          <Download className="w-3.5 h-3.5 text-cyan-400" />
+          <span>تحميل اللعبة (ملف HTML واحد مستقل)</span>
         </button>
 
         {/* Bottom Instructions Toggle */}

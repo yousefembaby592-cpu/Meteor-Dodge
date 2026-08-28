@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Meteor Dodge: Cyber Survival</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Orbitron:wght@700;900&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    body {
+      background-color: #030712;
+      color: #f8fafc;
+      font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    #bg-canvas-wrapper {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      transition: background 1.2s ease;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 480px;
+      max-height: 920px;
+      background: #000;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 50px rgba(6, 182, 212, 0.2);
+      z-index: 10;
+    }
+
+    @media (min-width: 640px) {
+      #game-container {
+        height: 94vh;
+        border-radius: 24px;
+        border: 1px solid rgba(6, 182, 212, 0.3);
+      }
+    }
+
+    /* HUD */
+    #hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(to bottom, rgba(3, 7, 18, 0.95), rgba(3, 7, 18, 0.4), transparent);
+      z-index: 20;
+      font-size: 13px;
+    }
+
+    .hud-stat-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hud-badge {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 3px 8px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .hud-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hud-btn {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .hud-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: #38bdf8;
+      color: #fff;
+    }
+
+    /* Canvas */
+    #canvas-container {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Modals & Screens */
+    .overlay-screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.88);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 30;
+      text-align: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Start Screen */
+    .game-logo {
+      font-size: 32px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #38bdf8, #ec4899, #eab308);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+      text-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    }
+
+    .sub-title {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 14px;
+    }
+
+    .banner-badge {
+      background: linear-gradient(to right, rgba(88, 28, 135, 0.5), rgba(6, 182, 212, 0.5));
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      color: #f3e8ff;
+      margin-bottom: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #06b6d4, #3b82f6);
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      padding: 12px 28px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 24px rgba(6, 182, 212, 0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+      margin: 8px 0;
+      width: 80%;
+      max-width: 260px;
+    }
+
+    .btn-primary:active {
+      transform: scale(0.96);
+    }
+
+    .btn-secondary {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #93c5fd;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 8px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 6px;
+      transition: all 0.2s;
+    }
+
+    .instructions-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-size: 11px;
+      color: #cbd5e1;
+      text-align: right;
+      width: 90%;
+      margin: 12px 0;
+      line-height: 1.6;
+    }
+
+    /* Perk Modal Grid */
+    #perk-modal {
+      background: rgba(2, 6, 23, 0.95);
+      z-index: 40;
+    }
+
+    .perk-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 100%;
+      max-width: 440px;
+      margin: 10px 0;
+    }
+
+    .perk-card {
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 10px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-align: right;
+      cursor: pointer;
+      transition: transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+      min-height: 170px;
+    }
+
+    .perk-card:active {
+      transform: scale(0.97);
+    }
+
+    .perk-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .perk-rarity-tag {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 5px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+    }
+
+    .perk-icon {
+      font-size: 20px;
+    }
+
+    .perk-title {
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 2px;
+      line-height: 1.2;
+    }
+
+    .perk-desc {
+      font-size: 9px;
+      color: #94a3b8;
+      line-height: 1.4;
+      flex-grow: 1;
+      margin-top: 4px;
+    }
+
+    .perk-btn-select {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 9px;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Rarity theme styles */
+    .rarity-common {
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.1);
+    }
+    .rarity-common .perk-title { color: #38bdf8; }
+    .rarity-common .perk-rarity-tag { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+
+    .rarity-rare {
+      border-color: rgba(168, 85, 247, 0.4);
+      box-shadow: 0 0 12px rgba(168, 85, 247, 0.1);
+    }
+    .rarity-rare .perk-title { color: #c084fc; }
+    .rarity-rare .perk-rarity-tag { background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
+
+    .rarity-epic {
+      border-color: rgba(234, 179, 8, 0.4);
+      box-shadow: 0 0 12px rgba(234, 179, 8, 0.1);
+    }
+    .rarity-epic .perk-title { color: #fde047; }
+    .rarity-epic .perk-rarity-tag { background: rgba(234, 179, 8, 0.15); color: #fde047; border-color: rgba(234, 179, 8, 0.3); }
+
+    .rarity-legendary {
+      border-color: rgba(236, 72, 153, 0.5);
+      box-shadow: 0 0 16px rgba(236, 72, 153, 0.15);
+    }
+    .rarity-legendary .perk-title { color: #f472b6; }
+    .rarity-legendary .perk-rarity-tag { background: rgba(236, 72, 153, 0.2); color: #f472b6; border-color: rgba(236, 72, 153, 0.4); }
+
+    /* Floating Game Over Stats */
+    .gameover-stat-card {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 10px;
+      margin: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div id="bg-canvas-wrapper"></div>
+
+  <main id="game-container">
+    <!-- Top HUD -->
+    <header id="hud">
+      <div class="hud-stat-group">
+        <div class="hud-badge" id="hud-score-badge">
+          <span>🏆</span>
+          <span id="hud-score">0</span>
+        </div>
+        <div class="hud-badge" id="hud-theme-badge" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">
+          <span>🌌</span>
+          <span id="hud-theme-name">مستوى 1</span>
+        </div>
+      </div>
+      <div class="hud-controls">
+        <button class="hud-btn" id="btn-sound" title="كتم/تشغيل الصوت">🔊</button>
+        <button class="hud-btn" id="btn-pause" title="إيقاف مؤقت">⏸️</button>
+      </div>
+    </header>
+
+    <!-- Canvas -->
+    <div id="canvas-container">
+      <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- Start Screen Overlay -->
+    <div id="start-screen" class="overlay-screen">
+      <div class="game-logo">METEOR DODGE</div>
+      <p class="sub-title">تفادَ النيازك وطوّر مركبتك الكونية</p>
+      <div class="banner-badge">
+        <span>⭐</span>
+        <span>تطور كل 1000 نقطة: 30 قدرة خارقة ودرع حماية!</span>
+      </div>
+
+      <div class="instructions-box">
+        <p>• <b>التحكم:</b> اسحب بإصبعك على الشاشة أو استخدم الأسهم / الماوس.</p>
+        <p>• <b>التطور:</b> كل 1000 نقطة تختار قدرة مع درع حماية ثانيتان وتفجير النيازك.</p>
+        <p>• <b>الأسلحة:</b> قدرة البلازما تطلق رصاصاً لتفتيت النيازك مباشرة!</p>
+      </div>
+
+      <button class="btn-primary" id="btn-start-game">انطلاق المهمة 🚀</button>
+      <div style="font-size: 11px; color: #64748b; margin-top: 8px;">أعلى نتيجة: <span id="start-high-score" style="color: #38bdf8; font-weight: bold;">0</span></div>
+    </div>
+
+    <!-- Perk Selection Modal (Every 1000 pts) -->
+    <div id="perk-modal" class="overlay-screen hidden">
+      <div style="background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234, 179, 8, 0.4); color: #fde047; padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-bottom: 6px;">
+        ✨ ترقية جديدة: <span id="modal-score-val">1000</span> نقطة!
+      </div>
+      <h2 style="font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 2px;">اختر قدرتك المطورة ⚡</h2>
+      <p style="font-size: 11px; color: #94a3b8; margin-bottom: 8px;">انتقلت إلى: <b id="modal-galaxy-name" style="color: #38bdf8;">سديم النيون</b></p>
+
+      <!-- 3 Perk Cards Row (Horizontal Grid on Phone & PC) -->
+      <div class="perk-cards-grid" id="perk-cards-container">
+        <!-- Rendered dynamically -->
+      </div>
+      <div style="font-size: 10px; color: #64748b; margin-top: 6px;">انقر على إحدى البطاقات الثلاث لتفعيلها واستئناف اللعبة فوراً</div>
+    </div>
+
+    <!-- Game Over Screen Overlay -->
+    <div id="gameover-screen" class="overlay-screen hidden">
+      <div style="font-size: 32px; margin-bottom: 4px;">💥</div>
+      <h2 style="font-size: 26px; font-weight: 900; color: #ef4444; margin-bottom: 4px;">تحطمت المركبة!</h2>
+      <p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">انتهت المهمة الكونية، حاول كسر رقمك القياسي!</p>
+
+      <div style="display: flex; justify-content: center; flex-wrap: wrap; margin-bottom: 14px;">
+        <div class="gameover-stat-card">
+          <span style="font-size: 10px; color: #94a3b8;">النقاط</span>
+          <span id="go-score" style="font-size: 20px; font-weight: 900; color: #38bdf8;">0</span>
+        </div>
+        <div class="gameover-stat-card">
+          <span style="font-size: 10px; color: #94a3b8;">أعلى نتيجة</span>
+          <span id="go-high" style="font-size: 20px; font-weight: 900; color: #eab308;">0</span>
+        </div>
+        <div class="gameover-stat-card">
+          <span style="font-size: 10px; color: #94a3b8;">النيازك المتفادية</span>
+          <span id="go-dodged" style="font-size: 20px; font-weight: 900; color: #a855f7;">0</span>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="btn-restart-game">إعادة المحاولة 🔄</button>
+      <button class="btn-secondary" id="btn-home-game">القائمة الرئيسية 🏠</button>
+    </div>
+  </main>
+
+  <script>
+    // ==========================================
+    // 1. SOUND MANAGER (Zero External Files Web Audio API)
+    // ==========================================
+    class SoundSynthesizer {
+      constructor() {
+        this.ctx = null;
+        this.isMuted = false;
+        this.bgmTimer = null;
+        this.bgmStep = 0;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) this.ctx = new AudioContextClass();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      toggleMute() {
+        this.isMuted = !this.isMuted;
+        if (this.isMuted) this.stopBgm();
+        else this.startBgm();
+        return this.isMuted;
+      }
+      playTone(freq, type, duration, vol = 0.2, slideTo = null) {
+        if (this.isMuted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now);
+          if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+          gain.gain.setValueAtTime(vol, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + duration);
+        } catch (e) {}
+      }
+      playBlaster() { this.playTone(850, 'square', 0.1, 0.15, 200); }
+      playExplosion() {
+        if (this.isMuted) return;
+        this.init();
+        if (!this.ctx) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(25, now + 0.35);
+          gain.gain.setValueAtTime(0.35, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } catch (e) {}
+      }
+      playShield() { this.playTone(320, 'sine', 0.3, 0.25, 780); }
+      playShieldBreak() { this.playTone(450, 'sawtooth', 0.25, 0.3, 90); }
+      playLevelUp() {
+        this.playTone(440, 'triangle', 0.12, 0.2);
+        setTimeout(() => this.playTone(554, 'triangle', 0.12, 0.2), 100);
+        setTimeout(() => this.playTone(659, 'triangle', 0.12, 0.2), 200);
+        setTimeout(() => this.playTone(880, 'triangle', 0.3, 0.25), 300);
+      }
+      playPowerUp() { this.playTone(300, 'sine', 0.25, 0.2, 600); }
+      playNearMiss() { this.playTone(800, 'sine', 0.1, 0.15, 1200); }
+      playClick() { this.playTone(600, 'sine', 0.05, 0.1); }
+      startBgm() {
+        if (this.isMuted || this.bgmTimer) return;
+        this.init();
+        const bassLine = [110, 110, 130, 110, 146, 130, 98, 123];
+        this.bgmTimer = setInterval(() => {
+          if (this.isMuted || !this.ctx) return;
+          const freq = bassLine[this.bgmStep % bassLine.length];
+          this.playTone(freq, 'triangle', 0.18, 0.05, freq * 0.85);
+          this.bgmStep++;
+        }, 240);
+      }
+      stopBgm() {
+        if (this.bgmTimer) {
+          clearInterval(this.bgmTimer);
+          this.bgmTimer = null;
+        }
+      }
+    }
+    const sound = new SoundSynthesizer();
+
+    // ==========================================
+    // 2. 30 UNIQUE PERKS DATABASE & RARITIES
+    // ==========================================
+    const RARITY_META = {
+      common: { nameAr: 'عادي', color: '#38bdf8', prob: 45, class: 'rarity-common' },
+      rare: { nameAr: 'جيد', color: '#a855f7', prob: 30, class: 'rarity-rare' },
+      epic: { nameAr: 'ممتاز', color: '#eab308', prob: 18, class: 'rarity-epic' },
+      legendary: { nameAr: 'أسطوري', color: '#ec4899', prob: 7, class: 'rarity-legendary' }
+    };
+
+    const ALL_PERKS = [
+      // 8 Common
+      { id: 'c1', nameAr: 'خفة حركة نيون', descAr: 'زيادة سرعة المناورة والاستجابة +15%', icon: '⚡', rarity: 'common', apply: s => { s.speedBoost += 0.15; } },
+      { id: 'c2', nameAr: 'مغناطيس النقاط', descAr: 'زيادة معدل كسب نقاط الصمود +12%', icon: '💎', rarity: 'common', apply: s => { s.scoreRateMult += 0.12; } },
+      { id: 'c3', nameAr: 'تصغير النانو', descAr: 'تقليص أبعاد المركبة 10% لسهولة المرور', icon: '📐', rarity: 'common', apply: s => { s.sizeScale *= 0.90; } },
+      { id: 'c4', nameAr: 'منطقة أمان مضغوطة', descAr: 'تقليل منطقة الاصطدام القاتلة بنسبة 15%', icon: '🎯', rarity: 'common', apply: s => { s.hitboxScale *= 0.85; } },
+      { id: 'c5', nameAr: 'مستشعر الخطر', descAr: 'تحذير مسبق بأشعة ضوئية لمسار النيازك', icon: '📡', rarity: 'common', apply: s => { s.dangerRadar = true; } },
+      { id: 'c6', nameAr: 'التفادي الذهبي', descAr: 'مضاعفة نقاط التفادي الوشيك إلى 120 نقطة', icon: '✨', rarity: 'common', apply: s => { s.nearMissBonus += 70; } },
+      { id: 'c7', nameAr: 'جاذبية الكبسولات', descAr: 'زيادة معدل سقوط الكبسولات وجذبها +25%', icon: '🧲', rarity: 'common', apply: s => { s.dropRateBoost += 0.25; } },
+      { id: 'c8', nameAr: 'مكابح كهرومغناطيسية', descAr: 'تقليل سرعة سقوط النيازك بنسبة 8%', icon: '🛑', rarity: 'common', apply: s => { s.meteorSpeedReduction += 0.08; } },
+
+      // 8 Good / Rare
+      { id: 'r1', nameAr: 'درع طاقة دائم (Mk I)', descAr: 'تزويد المركبة بدرع فوري يمتص صدمة كاملة', icon: '🛡️', rarity: 'rare', apply: s => { s.hasShield = true; } },
+      { id: 'r2', nameAr: 'ممدد الزمن الدائم', descAr: 'إبطاء حركة وسقوط النيازك 16% دائماً', icon: '⏳', rarity: 'rare', apply: s => { s.permSlow *= 0.84; } },
+      { id: 'r3', nameAr: 'مضاعف نقاط مستمر', descAr: 'زيادة جميع النقاط المكتسبة +35%', icon: '🔥', rarity: 'rare', apply: s => { s.scoreMultBonus += 0.35; } },
+      { id: 'r4', nameAr: 'هالة الدفع النبضي', descAr: 'هالة تدفع النيازك القريبة تلقائياً بعيداً', icon: '🌀', rarity: 'rare', apply: s => { s.repulsorAura = true; } },
+      { id: 'r5', nameAr: 'تعزيز الكبسولات', descAr: 'زيادة مدة وتأثير كبسولات الطاقة +50%', icon: '⚡', rarity: 'rare', apply: s => { s.powerDurationBoost += 0.5; } },
+      { id: 'r6', nameAr: 'وميض المناعة', descAr: 'مناعة واختراق 1 ثانية بعد كل تفادٍ وشيك', icon: '💫', rarity: 'rare', apply: s => { s.dodgeBlink = true; } },
+      { id: 'r7', nameAr: 'محركات الجاذبية', descAr: 'زيادة سرعة المناورة الأفقية +30%', icon: '🚀', rarity: 'rare', apply: s => { s.speedBoost += 0.30; } },
+      { id: 'r8', nameAr: 'حصاد النيازك', descAr: 'كل نيزك يمر بأمان يمنحك +20 نقطة فوراً', icon: '🪙', rarity: 'rare', apply: s => { s.salvageScore += 20; } },
+
+      // 8 Excellent / Epic
+      { id: 'e1', nameAr: 'درع البلازما المتجدد', descAr: 'درع واقٍ يتجدد تلقائياً كل 40 ثانية', icon: '🔰', rarity: 'epic', apply: s => { s.shieldRegenTime = 40; s.hasShield = true; } },
+      { id: 'e2', nameAr: 'نبضة EMP الدورية', descAr: 'موجة كهرومغناطيسية كل 25ث تدمر النيازك القريبة', icon: '💥', rarity: 'epic', apply: s => { s.empInterval = 25; } },
+      { id: 'e3', nameAr: 'التجميد النيوني', descAr: 'إبطاء النيازك الضخمة والسريعة بنسبة 35%', icon: '❄️', rarity: 'epic', apply: s => { s.bossFreeze = 0.35; } },
+      { id: 'e4', nameAr: 'مدفع الليزر الدفاعي', descAr: 'إطلاق شعاع ليزر كل 2.5ث لتفتيت أقرب نيزك', icon: '⚡', rarity: 'epic', apply: s => { s.laserInterceptor = true; } },
+      { id: 'e5', nameAr: 'المضاعف الهائج', descAr: 'مضاعفة النقاط x1.75 وزيادة التفادي +250 نقطة', icon: '👑', rarity: 'epic', apply: s => { s.scoreMultBonus += 0.75; s.nearMissBonus += 250; } },
+      { id: 'e6', nameAr: 'شبح الكوانتم', descAr: 'فرصة 25% لتجاوز أي اصطدام بدون ضرر نهائياً', icon: '🌌', rarity: 'epic', apply: s => { s.phaseChance = 0.25; } },
+      { id: 'e7', nameAr: 'سيفون الطاقة الفائق', descAr: 'سحب مغناطيسي قوي يجذب جميع الكبسولات', icon: '🌀', rarity: 'epic', apply: s => { s.magnetSiphon = true; } },
+      { id: 'e8', nameAr: 'الدرع المزدوج المقوى', descAr: 'درع مزدوج يتحمل ضربتين كاملتين قبل الاختفاء', icon: '🛡️🛡️', rarity: 'epic', apply: s => { s.twinShield = true; s.hasShield = true; } },
+
+      // 6 Legendary
+      { id: 'l1', nameAr: 'مدفع البلازما الكوني', descAr: 'إطلاق تلقائي لطلقات بلازما تدمر النيازك مباشرة!', icon: '🔫💥', rarity: 'legendary', apply: s => { s.hasBlaster = true; } },
+      { id: 'l2', nameAr: 'خلود الفينيق', descAr: 'إحياء فوري مجاني عند الخسارة مع مسح الشاشة ومناعة 3.5ث', icon: '🔥🦅', rarity: 'legendary', apply: s => { s.hasPhoenix = true; } },
+      { id: 'l3', nameAr: 'مولد الثقب الأسود', descAr: 'توليد ثقب أسود كل 20ث يبتلع النيازك ويحولها لنقاط', icon: '🕳️', rarity: 'legendary', apply: s => { s.blackHoleInterval = 20; } },
+      { id: 'l4', nameAr: 'مجال كرونوس لتجميد الزمن', descAr: 'تجميد حركة النيازك 60% ومضاعفة سرعة مركبتك', icon: '⌛⚡', rarity: 'legendary', apply: s => { s.permSlow *= 0.40; s.speedBoost += 0.50; } },
+      { id: 'l5', nameAr: 'عاصفة السوبرنوفا', descAr: 'كل 15ث تنفجر شحنة بلازما تدمر كل النيازك +300 نقطة', icon: '☀️💥', rarity: 'legendary', apply: s => { s.supernovaInterval = 15; } },
+      { id: 'l6', nameAr: 'تريليون فولت النجمي', descAr: 'مضاعفة نقاط الصمود x3 وتقليص حجم المركبة 25%', icon: '⚡👑', rarity: 'legendary', apply: s => { s.scoreRateMult *= 3; s.sizeScale *= 0.75; s.speedBoost += 0.6; } }
+    ];
+
+    const GALAXY_THEMES = [
+      { nameAr: 'سديم النيون الأزرق', bg: '#0d1838', starColors: ['#ffffff', '#38bdf8', '#c084fc'] },
+      { nameAr: 'سديم البنفسج الفضائي', bg: '#260a3a', starColors: ['#ffffff', '#c084fc', '#e879f9'] },
+      { nameAr: 'سديم الجمر الأحمر', bg: '#3d0c15', starColors: ['#ffffff', '#fca5a5', '#fbbf24'] },
+      { nameAr: 'السديم الذهبي المشع', bg: '#362406', starColors: ['#ffffff', '#fde047', '#fb923c'] },
+      { nameAr: 'سديم الزمرد الكوني', bg: '#062d1f', starColors: ['#ffffff', '#34d399', '#6ee7b7'] },
+      { nameAr: 'سديم الفوشيا الكهربائي', bg: '#3b0826', starColors: ['#ffffff', '#ec4899', '#fbcfe8'] },
+      { nameAr: 'الأورورا القطبية', bg: '#072e36', starColors: ['#ffffff', '#2dd4bf', '#99f6e4'] },
+      { nameAr: 'الفراغ اللانهائي', bg: '#1a0b2e', starColors: ['#ffffff', '#f0abfc', '#67e8f9'] }
+    ];
+
+    function rollThreePerks(chosenIds) {
+      const pool = ALL_PERKS.filter(p => !chosenIds.includes(p.id));
+      const res = [];
+      while (res.length < 3 && pool.length > 0) {
+        const roll = Math.random() * 100;
+        let rarity = 'common';
+        if (roll < 7) rarity = 'legendary';
+        else if (roll < 25) rarity = 'epic';
+        else if (roll < 55) rarity = 'rare';
+
+        let cands = pool.filter(p => p.rarity === rarity && !res.some(r => r.id === p.id));
+        if (cands.length === 0) cands = pool.filter(p => !res.some(r => r.id === p.id));
+        if (cands.length > 0) {
+          const pick = cands[Math.floor(Math.random() * cands.length)];
+          res.push(pick);
+        } else break;
+      }
+      return res;
+    }
+
+    // ==========================================
+    // 3. MAIN GAME ENGINE
+    // ==========================================
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    let gameState = 'idle'; // idle, playing, paused, level_up, gameover
+    let score = 0;
+    let highScore = parseInt(localStorage.getItem('meteor_dodge_high_score') || '0', 10);
+    let themeLevel = 1;
+    let nextMilestone = 1000;
+    let meteorsDodged = 0;
+    let nearMisses = 0;
+    let chosenPerkIds = [];
+
+    // Player & Perk State
+    let perks = createInitialPerkState();
+    let player = {
+      x: 0,
+      y: 0,
+      targetX: 0,
+      targetY: 0,
+      width: 32,
+      height: 38,
+      shield: false,
+      shieldHits: 0,
+      invulnerableTime: 0,
+      blasterTimer: 0
+    };
+
+    let stars = [];
+    let meteors = [];
+    let bullets = [];
+    let particles = [];
+    let floatingTexts = [];
+    let empWaveRadius = 0;
+    let shakeTime = 0;
+
+    function createInitialPerkState() {
+      return {
+        speedBoost: 1,
+        scoreRateMult: 1,
+        sizeScale: 1,
+        hitboxScale: 1,
+        dangerRadar: false,
+        nearMissBonus: 0,
+        dropRateBoost: 0,
+        meteorSpeedReduction: 0,
+        hasShield: false,
+        permSlow: 1,
+        scoreMultBonus: 0,
+        repulsorAura: false,
+        powerDurationBoost: 1,
+        dodgeBlink: false,
+        salvageScore: 0,
+        shieldRegenTime: 0,
+        shieldTimer: 0,
+        empInterval: 0,
+        empTimer: 0,
+        bossFreeze: 0,
+        laserInterceptor: false,
+        laserTimer: 0,
+        phaseChance: 0,
+        magnetSiphon: false,
+        twinShield: false,
+        hasBlaster: false,
+        hasPhoenix: false,
+        phoenixUsed: false,
+        blackHoleInterval: 0,
+        blackHoleTimer: 0,
+        supernovaInterval: 0,
+        supernovaTimer: 0
+      };
+    }
+
+    function resizeCanvas() {
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      if (player.x === 0) {
+        player.x = canvas.width / 2;
+        player.y = canvas.height - 70;
+        player.targetX = player.x;
+        player.targetY = player.y;
+      }
+      initStars();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function initStars() {
+      stars = [];
+      const count = Math.floor((canvas.width * canvas.height) / 3200);
+      const theme = GALAXY_THEMES[(themeLevel - 1) % GALAXY_THEMES.length];
+      for (let i = 0; i < count; i++) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          size: Math.random() * 2 + 0.6,
+          speed: Math.random() * 1.5 + 0.5,
+          color: theme.starColors[Math.floor(Math.random() * theme.starColors.length)],
+          alpha: Math.random() * 0.8 + 0.2
+        });
+      }
+    }
+
+    // Input handlers
+    let isTouching = false;
+    function setTarget(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      player.targetX = Math.max(player.width, Math.min(canvas.width - player.width, clientX - rect.left));
+      player.targetY = Math.max(canvas.height * 0.45, Math.min(canvas.height - player.height, clientY - rect.top));
+    }
+
+    window.addEventListener('mousemove', e => {
+      if (gameState === 'playing') setTarget(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('touchstart', e => {
+      if (gameState === 'playing' && e.touches.length > 0) {
+        isTouching = true;
+        setTarget(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', e => {
+      if (gameState === 'playing' && e.touches.length > 0) {
+        setTarget(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => { isTouching = false; });
+
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      keys[e.key] = true;
+      if (e.key === ' ' || e.key === 'p' || e.key === 'P') togglePause();
+    });
+    window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    // Spawn intelligent meteors
+    let meteorSpawnTimer = 0;
+    function spawnMeteor() {
+      const roll = Math.random();
+      let type = 'normal';
+      let radius = Math.random() * 5 + 12; // 12 to 17px
+      let speed = (Math.random() * 2.2 + 3.2) * (1 - perks.meteorSpeedReduction) * perks.permSlow;
+      let hp = 2;
+      let color = '#f97316';
+      let pts = 20;
+
+      if (roll < 0.22) {
+        // Fast Dart
+        type = 'dart';
+        radius = Math.random() * 3 + 8; // 8 to 11px
+        speed = (Math.random() * 3.5 + 5.5) * perks.permSlow * (1 - perks.bossFreeze * 0.5);
+        hp = 1;
+        color = '#ec4899';
+        pts = 40;
+      } else if (roll < 0.38) {
+        // Giant Boulder (Reduced size)
+        type = 'giant';
+        radius = Math.random() * 5 + 18; // 18 to 23px
+        speed = (Math.random() * 1.5 + 2.0) * perks.permSlow * (1 - perks.bossFreeze);
+        hp = 4;
+        color = '#eab308';
+        pts = 50;
+      }
+
+      // Intelligent clearance spacing
+      const minMargin = radius + 15;
+      const maxMargin = canvas.width - radius - 15;
+      let chosenX = Math.random() * (maxMargin - minMargin) + minMargin;
+
+      const topMeteors = meteors.filter(m => m.y < 160);
+      for (let attempt = 0; attempt < 12; attempt++) {
+        const candX = Math.random() * (maxMargin - minMargin) + minMargin;
+        let minGap = Infinity;
+        for (const tm of topMeteors) {
+          const gap = Math.abs(candX - tm.x);
+          if (gap < minGap) minGap = gap;
+        }
+        if (minGap >= radius + 34) {
+          chosenX = candX;
+          break;
+        }
+      }
+
+      meteors.push({
+        x: chosenX,
+        y: -radius - 20 - Math.random() * 30,
+        radius,
+        speed,
+        hp,
+        maxHp: hp,
+        color,
+        type,
+        points: pts,
+        rotation: 0,
+        rotSpeed: (Math.random() - 0.5) * 0.08
+      });
+    }
+
+    function createExplosion(x, y, color, count = 18) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const spd = Math.random() * 6 + 1.5;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * spd,
+          vy: Math.sin(angle) * spd,
+          size: Math.random() * 3.5 + 1.5,
+          color,
+          alpha: 1,
+          decay: Math.random() * 0.03 + 0.02
+        });
+      }
+    }
+
+    // ==========================================
+    // 4. GAME LOOP & UPDATE
+    // ==========================================
+    let lastTime = performance.now();
+
+    function gameLoop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      if (gameState === 'playing') {
+        update(dt);
+      }
+      render();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update(dt) {
+      // 1. Keyboard Controls
+      const kSpeed = 420 * perks.speedBoost * dt;
+      if (keys['ArrowLeft'] || keys['a'] || keys['A']) player.targetX -= kSpeed;
+      if (keys['ArrowRight'] || keys['d'] || keys['D']) player.targetX += kSpeed;
+      if (keys['ArrowUp'] || keys['w'] || keys['W']) player.targetY -= kSpeed;
+      if (keys['ArrowDown'] || keys['s'] || keys['S']) player.targetY += kSpeed;
+
+      player.targetX = Math.max(player.width, Math.min(canvas.width - player.width, player.targetX));
+      player.targetY = Math.max(canvas.height * 0.45, Math.min(canvas.height - player.height, player.targetY));
+
+      // Smooth position interpolation
+      player.x += (player.targetX - player.x) * Math.min(1, 14 * perks.speedBoost * dt);
+      player.y += (player.targetY - player.y) * Math.min(1, 14 * perks.speedBoost * dt);
+
+      if (player.invulnerableTime > 0) player.invulnerableTime -= dt;
+
+      // 2. Score Increment
+      const totalMult = (1 + perks.scoreMultBonus);
+      score += Math.round(dt * 30 * perks.scoreRateMult * totalMult);
+      document.getElementById('hud-score').innerText = score.toLocaleString();
+
+      // 3. Milestone Check (Every 1000 Points)
+      if (score >= nextMilestone) {
+        themeLevel++;
+        const dynamicStep = Math.round(1000 * (1 + (perks.scoreRateMult - 1) + perks.scoreMultBonus));
+        nextMilestone = score + dynamicStep;
+        triggerLevelUp();
+        return;
+      }
+
+      // 4. Plasma Blaster Auto Shooting
+      if (perks.hasBlaster) {
+        player.blasterTimer += dt;
+        if (player.blasterTimer >= 0.22) {
+          player.blasterTimer = 0;
+          bullets.push({
+            x: player.x - 10,
+            y: player.y - player.height * 0.6,
+            vy: -750,
+            radius: 3.5,
+            color: '#38bdf8'
+          });
+          bullets.push({
+            x: player.x + 10,
+            y: player.y - player.height * 0.6,
+            vy: -750,
+            radius: 3.5,
+            color: '#38bdf8'
+          });
+          sound.playBlaster();
+        }
+      }
+
+      // 5. Laser Interceptor
+      if (perks.laserInterceptor) {
+        perks.laserTimer = (perks.laserTimer || 0) + dt;
+        if (perks.laserTimer >= 2.5) {
+          perks.laserTimer = 0;
+          // Target closest meteor
+          if (meteors.length > 0) {
+            let closest = null;
+            let minDist = Infinity;
+            for (const m of meteors) {
+              const d = Math.hypot(m.x - player.x, m.y - player.y);
+              if (d < minDist) { minDist = d; closest = m; }
+            }
+            if (closest) {
+              createExplosion(closest.x, closest.y, '#38bdf8', 24);
+              const idx = meteors.indexOf(closest);
+              if (idx > -1) meteors.splice(idx, 1);
+              sound.playExplosion();
+            }
+          }
+        }
+      }
+
+      // 6. Spawn Meteors
+      meteorSpawnTimer += dt;
+      const spawnInterval = Math.max(0.35, 0.95 - (themeLevel * 0.05));
+      if (meteorSpawnTimer >= spawnInterval) {
+        meteorSpawnTimer = 0;
+        spawnMeteor();
+      }
+
+      // 7. Update Bullets
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.y += b.vy * dt;
+        if (b.y < -20) { bullets.splice(i, 1); continue; }
+
+        // Bullet collision with meteors
+        for (let j = meteors.length - 1; j >= 0; j--) {
+          const m = meteors[j];
+          const dist = Math.hypot(b.x - m.x, b.y - m.y);
+          if (dist < m.radius + b.radius) {
+            m.hp -= 1;
+            bullets.splice(i, 1);
+            createExplosion(b.x, b.y, '#38bdf8', 6);
+            if (m.hp <= 0) {
+              createExplosion(m.x, m.y, m.color, 20);
+              score += m.points * totalMult;
+              meteorsDodged++;
+              meteors.splice(j, 1);
+              sound.playExplosion();
+            }
+            break;
+          }
+        }
+      }
+
+      // 8. Update Meteors & Collision
+      const pRadius = (player.width * 0.45 * perks.sizeScale) * perks.hitboxScale;
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        m.y += m.speed;
+        m.rotation += m.rotSpeed;
+
+        // Repulsor aura effect
+        if (perks.repulsorAura) {
+          const dist = Math.hypot(m.x - player.x, m.y - player.y);
+          if (dist < 120) {
+            const pushDir = m.x > player.x ? 1 : -1;
+            m.x += pushDir * 35 * dt;
+          }
+        }
+
+        // Passed safely
+        if (m.y > canvas.height + m.radius + 20) {
+          meteors.splice(i, 1);
+          meteorsDodged++;
+          if (perks.salvageScore > 0) score += perks.salvageScore;
+          continue;
+        }
+
+        // Near-Miss check
+        const distToPlayer = Math.hypot(m.x - player.x, m.y - player.y);
+        if (distToPlayer < m.radius + pRadius + 24 && !m.nearMissTriggered) {
+          m.nearMissTriggered = true;
+          nearMisses++;
+          score += 50 + perks.nearMissBonus;
+          sound.playNearMiss();
+          if (perks.dodgeBlink) player.invulnerableTime = Math.max(player.invulnerableTime, 1.0);
+        }
+
+        // Fatal collision check
+        if (distToPlayer < m.radius + pRadius) {
+          if (player.invulnerableTime > 0) {
+            // Destroy meteor harmlessly
+            createExplosion(m.x, m.y, m.color, 16);
+            meteors.splice(i, 1);
+            continue;
+          }
+
+          // Quantum Phase Shift perk chance
+          if (perks.phaseChance > 0 && Math.random() < perks.phaseChance) {
+            player.invulnerableTime = 1.0;
+            createExplosion(player.x, player.y, '#c084fc', 12);
+            continue;
+          }
+
+          // Shield absorption
+          if (player.shield || perks.hasShield) {
+            player.shieldHits = (player.shieldHits || 0) + 1;
+            if (perks.twinShield && player.shieldHits < 2) {
+              sound.playShieldBreak();
+            } else {
+              player.shield = false;
+              perks.hasShield = false;
+              player.shieldHits = 0;
+              sound.playShieldBreak();
+            }
+            player.invulnerableTime = 1.2;
+            createExplosion(m.x, m.y, '#38bdf8', 22);
+            meteors.splice(i, 1);
+            continue;
+          }
+
+          // Phoenix Revive Perk
+          if (perks.hasPhoenix && !perks.phoenixUsed) {
+            perks.phoenixUsed = true;
+            player.invulnerableTime = 3.5;
+            empWaveRadius = 30;
+            meteors = [];
+            createExplosion(player.x, player.y, '#f59e0b', 50);
+            sound.playLevelUp();
+            continue;
+          }
+
+          // Game Over Trigger
+          gameOver();
+          return;
+        }
+      }
+
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) particles.splice(i, 1);
+      }
+
+      // Update EMP Wave
+      if (empWaveRadius > 0) {
+        empWaveRadius += 650 * dt;
+        if (empWaveRadius > canvas.width * 1.5) empWaveRadius = 0;
+      }
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Render Stars
+      for (const s of stars) {
+        s.y += s.speed * (gameState === 'playing' ? 1.5 : 0.5);
+        if (s.y > canvas.height) { s.y = 0; s.x = Math.random() * canvas.width; }
+        ctx.fillStyle = s.color;
+        ctx.globalAlpha = s.alpha;
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+      }
+      ctx.globalAlpha = 1;
+
+      // 2. Render Bullets
+      for (const b of bullets) {
+        ctx.fillStyle = b.color;
+        ctx.shadowColor = b.color;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+
+      // 3. Render Meteors
+      for (const m of meteors) {
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.rotate(m.rotation);
+
+        ctx.fillStyle = m.color;
+        ctx.shadowColor = m.color;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        ctx.arc(0, 0, m.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner core
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(-m.radius * 0.25, -m.radius * 0.25, m.radius * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+      ctx.shadowBlur = 0;
+
+      // 4. Render Player Ship
+      if (gameState === 'playing' || gameState === 'level_up' || gameState === 'paused') {
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        const pScale = perks.sizeScale;
+        ctx.scale(pScale, pScale);
+
+        // Invulnerable / Shield rendering
+        if (player.shield || perks.hasShield || player.invulnerableTime > 0) {
+          ctx.strokeStyle = player.invulnerableTime > 0 ? '#38bdf8' : (perks.twinShield ? '#eab308' : '#06b6d4');
+          ctx.lineWidth = player.invulnerableTime > 0 ? 3.5 : 2.5;
+          ctx.shadowColor = ctx.strokeStyle;
+          ctx.shadowBlur = 20;
+          ctx.beginPath();
+          ctx.arc(0, 0, player.width * 0.85, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = player.invulnerableTime > 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(6, 182, 212, 0.15)';
+          ctx.fill();
+        }
+
+        // Ship hull
+        ctx.fillStyle = '#06b6d4';
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.moveTo(0, -player.height * 0.55);
+        ctx.lineTo(-player.width * 0.5, player.height * 0.45);
+        ctx.lineTo(0, player.height * 0.25);
+        ctx.lineTo(player.width * 0.5, player.height * 0.45);
+        ctx.closePath();
+        ctx.fill();
+
+        // Ship Cockpit
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(0, -player.height * 0.1, 4, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Engine Thruster Flame
+        ctx.fillStyle = '#f59e0b';
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(-5, player.height * 0.35);
+        ctx.lineTo(0, player.height * 0.35 + Math.random() * 12 + 6);
+        ctx.lineTo(5, player.height * 0.35);
+        ctx.fill();
+
+        ctx.restore();
+        ctx.shadowBlur = 0;
+      }
+
+      // 5. Render Particles
+      for (const p of particles) {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // 6. Render EMP shockwave
+      if (empWaveRadius > 0) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 25;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, empWaveRadius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // ==========================================
+    // 5. LEVEL UP & PERK MODAL TRIGGER
+    // ==========================================
+    function triggerLevelUp() {
+      gameState = 'level_up';
+      sound.stopBgm();
+      sound.playLevelUp();
+
+      const theme = GALAXY_THEMES[(themeLevel - 1) % GALAXY_THEMES.length];
+      document.getElementById('bg-canvas-wrapper').style.background = `radial-gradient(ellipse at center, ${theme.bg}, #000 80%)`;
+      document.getElementById('hud-theme-name').innerText = `مستوى ${themeLevel}`;
+
+      document.getElementById('modal-score-val').innerText = score.toLocaleString();
+      document.getElementById('modal-galaxy-name').innerText = theme.nameAr;
+
+      const rolled = rollThreePerks(chosenPerkIds);
+      const container = document.getElementById('perk-cards-container');
+      container.innerHTML = '';
+
+      rolled.forEach(perk => {
+        const meta = RARITY_META[perk.rarity];
+        const card = document.createElement('div');
+        card.className = `perk-card ${meta.class}`;
+        card.innerHTML = `
+          <div>
+            <div class="perk-card-header">
+              <span class="perk-rarity-tag">${meta.nameAr} • ${meta.prob}%</span>
+              <span class="perk-icon">${perk.icon}</span>
+            </div>
+            <div class="perk-title">${perk.nameAr}</div>
+            <div class="perk-desc">${perk.descAr}</div>
+          </div>
+          <div class="perk-btn-select">
+            <span>تفعيل</span>
+            <span>⚡</span>
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          selectPerk(perk);
+        });
+
+        container.appendChild(card);
+      });
+
+      document.getElementById('perk-modal').classList.remove('hidden');
+    }
+
+    function selectPerk(perk) {
+      chosenPerkIds.push(perk.id);
+      perk.apply(perks);
+      document.getElementById('perk-modal').classList.add('hidden');
+
+      // 1. Invulnerability Shield for 2.0 Seconds
+      player.invulnerableTime = 2.0;
+
+      // 2. Orbital Purge: Explode all meteors near player
+      const safetyRadius = 350;
+      let destroyed = 0;
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        const dist = Math.hypot(m.x - player.x, m.y - player.y);
+        if (dist <= safetyRadius || m.y >= player.y - 120) {
+          createExplosion(m.x, m.y, m.color, 22);
+          meteors.splice(i, 1);
+          destroyed++;
+        }
+      }
+
+      empWaveRadius = 25;
+      sound.playShield();
+      if (destroyed > 0) sound.playExplosion();
+
+      gameState = 'playing';
+      sound.startBgm();
+    }
+
+    // ==========================================
+    // 6. START, PAUSE & GAME OVER
+    // ==========================================
+    function startGame() {
+      score = 0;
+      themeLevel = 1;
+      nextMilestone = 1000;
+      meteorsDodged = 0;
+      nearMisses = 0;
+      chosenPerkIds = [];
+      perks = createInitialPerkState();
+      meteors = [];
+      bullets = [];
+      particles = [];
+
+      player.x = canvas.width / 2;
+      player.y = canvas.height - 70;
+      player.targetX = player.x;
+      player.targetY = player.y;
+      player.shield = false;
+      player.shieldHits = 0;
+      player.invulnerableTime = 0;
+
+      const theme = GALAXY_THEMES[0];
+      document.getElementById('bg-canvas-wrapper').style.background = `radial-gradient(ellipse at center, ${theme.bg}, #000 80%)`;
+      document.getElementById('hud-theme-name').innerText = `مستوى 1`;
+      document.getElementById('hud-score').innerText = '0';
+
+      document.getElementById('start-screen').classList.add('hidden');
+      document.getElementById('gameover-screen').classList.add('hidden');
+      document.getElementById('perk-modal').classList.add('hidden');
+
+      gameState = 'playing';
+      sound.startBgm();
+    }
+
+    function gameOver() {
+      gameState = 'gameover';
+      sound.stopBgm();
+      sound.playExplosion();
+
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('meteor_dodge_high_score', String(highScore));
+      }
+
+      document.getElementById('go-score').innerText = score.toLocaleString();
+      document.getElementById('go-high').innerText = highScore.toLocaleString();
+      document.getElementById('go-dodged').innerText = meteorsDodged.toLocaleString();
+      document.getElementById('gameover-screen').classList.remove('hidden');
+    }
+
+    function togglePause() {
+      if (gameState === 'playing') {
+        gameState = 'paused';
+        sound.stopBgm();
+        document.getElementById('btn-pause').innerText = '▶️';
+      } else if (gameState === 'paused') {
+        gameState = 'playing';
+        sound.startBgm();
+        document.getElementById('btn-pause').innerText = '⏸️';
+      }
+    }
+
+    // Event Listeners
+    document.getElementById('btn-start-game').addEventListener('click', () => { sound.init(); startGame(); });
+    document.getElementById('btn-restart-game').addEventListener('click', () => { sound.init(); startGame(); });
+    document.getElementById('btn-home-game').addEventListener('click', () => {
+      gameState = 'idle';
+      document.getElementById('gameover-screen').classList.add('hidden');
+      document.getElementById('start-screen').classList.remove('hidden');
+      document.getElementById('start-high-score').innerText = highScore.toLocaleString();
+    });
+
+    document.getElementById('btn-sound').addEventListener('click', () => {
+      const isMuted = sound.toggleMute();
+      document.getElementById('btn-sound').innerText = isMuted ? '🔇' : '🔊';
+    });
+
+    document.getElementById('btn-pause').addEventListener('click', togglePause);
+
+    // Initial setup
+    document.getElementById('start-high-score').innerText = highScore.toLocaleString();
+    resizeCanvas();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
